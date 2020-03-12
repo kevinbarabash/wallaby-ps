@@ -6,8 +6,11 @@ Example project trying to get PureScript and Wallaby working together.
 
 ```
 yarn install
-yarn watch
+yarn sapgo install
+yarn build
 ```
+
+NOTE: `yarn watch` requires a global install of the `purescript` npm module.
 
 ## Notes
 

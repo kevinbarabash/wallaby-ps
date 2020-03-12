@@ -3,6 +3,10 @@ const path = require("path");
 
 module.exports = () => {
     return {
+        env: {
+            type: "node",
+        },
+
         files: [
             "src/**/*.purs",
             ".spago/*/*/src/**/*.purs", // avoid catenable-lists/v5.0.1/benchmarks/src/
