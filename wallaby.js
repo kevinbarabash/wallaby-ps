@@ -17,13 +17,16 @@ module.exports = () => {
         ],
 
         postprocessor: function (wallaby) {
+            const files = [];
+
             const promises = wallaby.allFiles.map(file => {
                 return file.getContent().then(content => {
-                    const match = content.match(/^module ([a-zA-Z\.]+)/m);
+                    const match = content.match(/^module ([a-zA-Z][[a-zA-Z0-9\.]+)/m);
                     const name = match[1];
                     if (!name) {
                         throw new Error("module name not found");
                     }
+                    console.log(`${file.path} = ${name}`);
                     return name;
                 }).then(name => {
                     const indexPath = path.join(__dirname, "output", name, "index.js");
@@ -31,15 +34,28 @@ module.exports = () => {
                         throw new Error(`no index.js found for ${name}: ${file.path}`);
                     }
 
-                    const content = fs.readFileSync(path.join(__dirname, "output", name, "index.js"), "utf-8");
+                    const content = fs.readFileSync(indexPath, "utf-8");
                     const sourceMap = fs.readFileSync(path.join(__dirname, "output", name, "index.js.map"), "utf-8");
 
-                    return wallaby.createFile({
-                        path: file.path,
-                        original: file,
-                        content,
-                        sourceMap,
-                    });
+                    files.push(
+                        wallaby.createFile({
+                            path: path.join("output", name, "index.js"),
+                            original: file,
+                            content,
+                            sourceMap,
+                        }),
+                    );
+
+                    const foreignPath = path.join(__dirname, "output", name, "foreign.js");
+                    if (fs.existsSync(foreignPath)) {
+                        const content = fs.readFileSync(foreignPath, "utf-8");
+                        files.push(
+                            wallaby.createFile({
+                                path: path.join("output", name, "foreign.js"),
+                                content,
+                            }),
+                        );
+                    }
                 });
             });
 
@@ -51,7 +67,7 @@ module.exports = () => {
                 }),
             );
 
-            return Promise.all(promises);
+            return Promise.all([...promises, ...files]);
         },
     };
 }
