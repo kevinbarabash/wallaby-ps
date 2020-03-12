@@ -39,6 +39,14 @@ module.exports = () => {
                 });
             });
 
+            promises.push(
+                wallaby.createFile({
+                    order: Infinity,
+                    path: 'run-tests.js',
+                    content: 'const {main} = require("./output/Test.Main/index.js");\nmain();',
+                }),
+            );
+
             return Promise.all(promises);
         },
     };
