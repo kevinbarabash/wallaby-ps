@@ -7,8 +7,9 @@
   "license": "MIT",
   "scripts": {
     "clean": "rm -rf output",
-    "build": "yarn purs compile -g sourcemaps \".spago/console/v4.4.0/src/**/*.purs\" \".spago/effect/v2.0.1/src/**/*.purs\" \".spago/prelude/v4.1.1/src/**/*.purs\" \".spago/psci-support/v4.0.0/src/**/*.purs\" \"src/**/*.purs\" \"test/**/*.purs\"",
-    "watch": "yarn spago build --watch --purs-args '-g sourcemaps'"
+    "build": "yarn purs compile -g sourcemaps \".spago/*/*/src/**/*.purs\" \"src/**/*.purs\" \"test/**/*.purs\"",
+    "watch": "yarn spago build --watch --purs-args '-g sourcemaps'",
+    "test": "./run-tests.js"
   },
   "devDependencies": {
     "purescript": "^0.13.6",
