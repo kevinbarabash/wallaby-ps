@@ -47,5 +47,19 @@ module.exports = () => {
             "**/*.purs": pursCompiler,
             ".spago/**/*.purs": pursCompiler,
         },
+
+        postprocessor: wallaby => {
+
+            const promises = [];
+
+            promises.push(
+                wallaby.createFile({	
+                    path: 'Control.Applicative/index.js',	
+                    content: 'console.log("hello, world!")',	
+                }),
+            )
+
+            return Promise.all(promises);
+        },
     };
 }
