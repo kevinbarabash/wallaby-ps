@@ -23,12 +23,12 @@ const pursCompiler = file => {
     return {
         map,
         code,
-    }
+    };
 };
 
 module.exports = () => {
     return {
-        // trace: true,
+        trace: true,
 
         env: {
             type: "node",
@@ -52,12 +52,34 @@ module.exports = () => {
 
             const promises = [];
 
-            promises.push(
-                wallaby.createFile({	
-                    path: 'Control.Applicative/index.js',	
-                    content: 'console.log("hello, world!")',	
-                }),
-            )
+            const outputDir = path.join(__dirname, "output");
+            for (const child of fs.readdirSync(path.join(__dirname, "output"))) {
+                const childDir = path.join(outputDir, child);
+                const stats = fs.lstatSync(childDir);
+                if (stats.isDirectory()) {
+                    const indexPath = path.join(childDir, "index.js");
+                    if (fs.existsSync(indexPath)) {
+                        const content = fs.readFileSync(indexPath, "utf-8");
+                        promises.push(
+                            wallaby.createFile({
+                                path: path.join(child, "index.js"),
+                                content: content,
+                            }),
+                        );
+                    }
+                    
+                    const foreignPath = path.join(childDir, "foreign.js");
+                    if (fs.existsSync(foreignPath)) {
+                        const content = fs.readFileSync(foreignPath, "utf-8");
+                        promises.push(
+                            wallaby.createFile({
+                                path: path.join(child, "foreign.js"),
+                                content: content,
+                            }),
+                        );
+                    }
+                }
+            }
 
             return Promise.all(promises);
         },
