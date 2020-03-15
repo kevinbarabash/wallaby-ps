@@ -1,8 +1,35 @@
 const fs = require("fs");
 const path = require("path");
 
+const pursCompiler = file => {
+    const match = file.content.match(/^module ([a-zA-Z][[a-zA-Z0-9\.]+)/m);
+    if (match === null) {
+        console.log(file);
+        throw new Error("match is null");
+    }
+    const name = match[1];
+    if (!name) {
+        throw new Error("module name not found");
+    }
+
+    const indexPath = path.join(__dirname, "output", name, "index.js");
+    if (!fs.existsSync(indexPath)) {
+        throw new Error(`no index.js found for ${name}: ${file.path}`);
+    }
+
+    const code = fs.readFileSync(indexPath, "utf-8");
+    const map = fs.readFileSync(path.join(__dirname, "output", name, "index.js.map"), "utf-8");
+    
+    return {
+        map,
+        code,
+    };
+};
+
 module.exports = () => {
     return {
+        trace: true,
+
         env: {
             type: "node",
         },
@@ -16,58 +43,45 @@ module.exports = () => {
             "test/**/*.purs",
         ],
 
-        postprocessor: function (wallaby) {
-            const files = [];
+        compilers: {
+            "**/*.purs": pursCompiler,
+            ".spago/**/*.purs": pursCompiler,
+        },
 
-            const promises = wallaby.allFiles.map(file => {
-                return file.getContent().then(content => {
-                    const match = content.match(/^module ([a-zA-Z][[a-zA-Z0-9\.]+)/m);
-                    const name = match[1];
-                    if (!name) {
-                        throw new Error("module name not found");
-                    }
-                    console.log(`${file.path} = ${name}`);
-                    return name;
-                }).then(name => {
-                    const indexPath = path.join(__dirname, "output", name, "index.js");
-                    if (!fs.existsSync(indexPath)) {
-                        throw new Error(`no index.js found for ${name}: ${file.path}`);
-                    }
+        postprocessor: wallaby => {
 
-                    const content = fs.readFileSync(indexPath, "utf-8");
-                    const sourceMap = fs.readFileSync(path.join(__dirname, "output", name, "index.js.map"), "utf-8");
+            const promises = [];
 
-                    files.push(
-                        wallaby.createFile({
-                            path: path.join("output", name, "index.js"),
-                            original: file,
-                            content,
-                            sourceMap,
-                        }),
-                    );
-
-                    const foreignPath = path.join(__dirname, "output", name, "foreign.js");
-                    if (fs.existsSync(foreignPath)) {
-                        const content = fs.readFileSync(foreignPath, "utf-8");
-                        files.push(
+            const outputDir = path.join(__dirname, "output");
+            for (const child of fs.readdirSync(path.join(__dirname, "output"))) {
+                const childDir = path.join(outputDir, child);
+                const stats = fs.lstatSync(childDir);
+                if (stats.isDirectory()) {
+                    const indexPath = path.join(childDir, "index.js");
+                    if (fs.existsSync(indexPath)) {
+                        const content = fs.readFileSync(indexPath, "utf-8");
+                        promises.push(
                             wallaby.createFile({
-                                path: path.join("output", name, "foreign.js"),
-                                content,
+                                path: path.join(child, "index.js"),
+                                content: content,
                             }),
                         );
                     }
-                });
-            });
+                    
+                    const foreignPath = path.join(childDir, "foreign.js");
+                    if (fs.existsSync(foreignPath)) {
+                        const content = fs.readFileSync(foreignPath, "utf-8");
+                        promises.push(
+                            wallaby.createFile({
+                                path: path.join(child, "foreign.js"),
+                                content: content,
+                            }),
+                        );
+                    }
+                }
+            }
 
-            promises.push(
-                wallaby.createFile({
-                    order: Infinity,
-                    path: 'run-tests.js',
-                    content: 'const {main} = require("./output/Test.Main/index.js");\nmain();',
-                }),
-            );
-
-            return Promise.all([...promises, ...files]);
+            return Promise.all(promises);
         },
     };
 }
